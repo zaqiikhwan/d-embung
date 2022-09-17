@@ -24,6 +24,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"message": "input is invalid",
+				"statusCode": http.StatusBadRequest,
 				"error":   err.Error(),
 			})
 			return
@@ -38,6 +39,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "can't create new operational",
+				"statusCode": http.StatusInternalServerError,
 				"error": err.Error.Error(),
 			})
 			return
@@ -46,6 +48,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 		c.JSON(http.StatusCreated, gin.H{
 			"success": true,
 			"message": "a new operational has successfully created",
+			"statusCode": http.StatusCreated,
 			"data":    newOperasional.CreatedAt,
 		})
 	})
@@ -59,6 +62,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "operational isn't available",
+				"statusCode": http.StatusInternalServerError,
 				"error": err.Error.Error(),
 			})
 			return
@@ -67,6 +71,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H {
 			"success": true,
 			"message": "success querying latest operational",
+			"statusCode": http.StatusOK,
 			"data":    operasional,
 		})
 	})
@@ -81,6 +86,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H {
 				"success": false,
 				"message": "input is invalid",
+				"statusCode": http.StatusBadRequest,
 				"error": err.Error(),
 			})
 		}
@@ -97,15 +103,17 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "Error when updating new operational.",
+				"statusCode": http.StatusInternalServerError,
 				"error":   result.Error.Error(),
 			})
 			return
 		}
 
 		if result = db.Where("id = ?", id).Take(&patchOperasional); result.Error != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
+			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"message": "Error when querying the database.",
+				"statusCode": http.StatusNotFound,
 				"error":   result.Error.Error(),
 			})
 			return
@@ -115,6 +123,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"message": "operational not found.",
+				"statusCode": http.StatusNotFound,
 			})
 			return
 		}
@@ -122,6 +131,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 		c.JSON(http.StatusCreated, gin.H{
 			"success": true,
 			"message": "Update successful.",
+			"statusCode": http.StatusOK,
 			"data":    patchOperasional,
 		})
 	})
@@ -136,12 +146,14 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "Error when deleting from the database.",
+				"statusCode": http.StatusInternalServerError,
 				"error":   err.Error.Error(),
 			})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
+			"statusCode": http.StatusOK,
 			"message": "Delete successful.",
 		})
 	})
@@ -178,6 +190,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		if err := c.SaveUploadedFile(image, "./Images/"+image.Filename); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"Success": false,
+				"statusCode": http.StatusBadRequest,
 				"error":   "upload file err: " + err.Error(),
 			})
 			return
@@ -196,6 +209,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "error when inserting a new article",
+				"statusCode": http.StatusInternalServerError,
 				"error":   err.Error.Error(),
 			})
 			return
@@ -204,27 +218,57 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		c.JSON(http.StatusCreated, gin.H{
 			"success":     true,
 			"message":     "a new article has successfully created",
+			"statusCode": http.StatusCreated,
 			"error":       nil,
 			"judul_article": newArticle.Title,
 		})
 	})
 
 	// get all article
-	r.GET("/article", func(c *gin.Context) {
+	r.GET("/articles", func(c *gin.Context) {
 		var allArticle []Entities.Artikel
 
 		if res := db.Find(&allArticle); res.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H {
 				"success": false,
 				"message": "failed when query all article",
+				"statusCode": http.StatusInternalServerError,
 				"error": res.Error.Error(),
 			})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H {
 			"success": true,
+			"statusCode": http.StatusInternalServerError,
 			"error": nil,
 			"data": allArticle,
+		})
+	})
+
+	// search article by query title
+	r.GET("/article", func(c *gin.Context) {
+		title, _ := c.GetQuery("q")
+
+		var allArticle []Entities.Artikel
+
+		if res := db.Where("title LIKE ?", "%"+title+"%").Find(&allArticle); res.Error != nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"message": "Hasil Pencarian Tidak Ditemukan",
+				"statusCode": http.StatusNotFound,
+				"error":   res.Error.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Search successful",
+			"statusCode": http.StatusOK,
+			"query": gin.H{
+				"title":     title,
+			},
+			"data":    allArticle,
 		})
 	})
 
@@ -239,6 +283,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "Error when querying the database.",
+				"statusCode": http.StatusInternalServerError,
 				"error":   result.Error.Error(),
 			})
 			return
@@ -247,6 +292,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": "query article successful.",
+			"statusCode": http.StatusOK,
 			"error":   nil,
 			"data":    article,
 		})
@@ -263,6 +309,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "Something went wrong",
+				"statusCode": http.StatusInternalServerError,
 				"error":   res.Error.Error(),
 			})
 			return
@@ -298,6 +345,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			if err := c.SaveUploadedFile(image, "./Images/"+image.Filename); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"Success": false,
+					"statusCode": http.StatusBadRequest,
 					"error":   "upload file err: " + err.Error(),
 				})
 				return
@@ -312,6 +360,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "error when inserting a new agenda",
+				"statusCode": http.StatusInternalServerError,
 				"error":   err.Error.Error(),
 			})
 			return
@@ -321,6 +370,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			"success": true,
 			"message": "a new article has successfully updated",
 			"error":   nil,
+			"statusCode": http.StatusOK,
 			"data":    newArticle,
 		})
 	})
@@ -335,6 +385,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "Error when deleting from the database.",
+				"statusCode": http.StatusInternalServerError,
 				"error":   res.Error.Error(),
 			})
 			return
@@ -343,6 +394,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": "Delete successful.",
+			"statusCode": http.StatusInternalServerError,
 		})
 	})
 }
