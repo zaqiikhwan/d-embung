@@ -16,6 +16,7 @@ func TestimoniController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"message": "input is invalid",
 				"success": false,
+				"statusCode": http.StatusBadRequest,
 				"error":   err.Error(),
 			})
 			return
@@ -30,14 +31,16 @@ func TestimoniController(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"message": "can't create new operational",
 				"success": false,
+				"statusCode": http.StatusInternalServerError,
 				"error": err.Error.Error(),
 			})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H {
+		c.JSON(http.StatusCreated, gin.H {
 			"success": true,
 			"error": nil,
+			"statusCode": http.StatusCreated,
 			"data": newTestimoni.Testimoni,
 		})
 	})
@@ -45,10 +48,11 @@ func TestimoniController(db *gorm.DB, r *gin.Engine) {
 	r.GET("/testimoni", func(c *gin.Context) {
 		var allTestimoni []Entities.Testimoni
 
-		if err := db.Find(&allTestimoni); err.Error != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": "can't create new operational",
+		if err := db.Order("id desc").Find(&allTestimoni).Limit(3); err.Error != nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"message": "can't find testimonies",
 				"success": false,
+				"statusCode": http.StatusNotFound,
 				"error": err.Error.Error(),
 			})
 			return
@@ -57,6 +61,7 @@ func TestimoniController(db *gorm.DB, r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H {
 			"success": true,
 			"error": nil,
+			"statusCode": http.StatusOK,
 			"data": allTestimoni,
 		})
 	})

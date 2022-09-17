@@ -1,7 +1,7 @@
 package Entities
 
 type Admin struct {
-	ID uint `gorm:"primaryKey" json:"id"`
-	NamaLengkap string `gorm:"size:255" json:"nama_lengkap"`
+	ID       uint   `gorm:"primaryKey" json:"id"`
+	Nickname string `gorm:"size:255" json:"nickname"`
 	Password string `gorm:"size:255" json:"password"`
 }

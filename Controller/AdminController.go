@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	stripmd "github.com/writeas/go-strip-markdown"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
 	"github.com/joho/godotenv"
@@ -197,11 +199,16 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		}
 		enText := slug.MakeLang(c.PostForm("title"), "en")
 
+		excerpt := stripmd.Strip(c.PostForm("body"))
+		if (len(excerpt) > 120) {
+			excerpt = excerpt[:120]
+		} 
+
 		newArticle := Entities.Artikel {
 			Title: c.PostForm("title"),
 			Slug: enText,
 			Image: os.Getenv("BASE_URL") + "/article/image/" + image.Filename,
-			Excerpt: c.PostForm("excerpt"),
+			Excerpt: excerpt,
 			Body: c.PostForm("body"),
 		}
 
@@ -247,11 +254,11 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 
 	// search article by query title
 	r.GET("/article", func(c *gin.Context) {
-		title, _ := c.GetQuery("q")
+		query, _ := c.GetQuery("q")
 
 		var allArticle []Entities.Artikel
 
-		if res := db.Where("title LIKE ?", "%"+title+"%").Find(&allArticle); res.Error != nil {
+		if res := db.Where("title LIKE ?", "%"+query+"%").Find(&allArticle); res.Error != nil {
 			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"message": "Hasil Pencarian Tidak Ditemukan",
@@ -265,9 +272,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			"success": true,
 			"message": "Search successful",
 			"statusCode": http.StatusOK,
-			"query": gin.H{
-				"title":     title,
-			},
+			"query": query,
 			"data":    allArticle,
 		})
 	})
