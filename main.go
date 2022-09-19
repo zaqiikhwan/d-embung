@@ -5,7 +5,6 @@ import (
 	"backend-d-embung/Database"
 	"crypto/sha512"
 	"encoding/hex"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +14,6 @@ import (
 )
 
 func main() {
-	fmt.Println(hash("ricoPass12/!"))
 	if err := godotenv.Load(); err != nil {
 		log.Fatal(err.Error())
 	}
