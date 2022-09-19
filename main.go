@@ -3,8 +3,8 @@ package main
 import (
 	"backend-d-embung/Controller"
 	"backend-d-embung/Database"
-	"crypto/sha512"
-	"encoding/hex"
+	_"crypto/sha512"
+	_"encoding/hex"
 	"log"
 	"net/http"
 	"os"
@@ -67,9 +67,9 @@ func main() {
 }
 
 // hash sha512 untuk password
-func hash(input string) string {
-	hash := sha512.New()
-	hash.Write([]byte(input))
-	pass := hex.EncodeToString(hash.Sum(nil))
-	return pass
-}
+// func hash(input string) string {
+// 	hash := sha512.New()
+// 	hash.Write([]byte(input))
+// 	pass := hex.EncodeToString(hash.Sum(nil))
+// 	return pass
+// }
