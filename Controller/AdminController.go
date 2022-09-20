@@ -78,10 +78,18 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 	})
 
 	// patch operational time
-	r.PATCH("/operasional/:id", func(c *gin.Context) {
-		id, _ := c.Params.Get("id")
-
+	r.PATCH("/operasional", func(c *gin.Context) {
 		var input Entities.Operasional
+
+		if query := db.Order("id desc").Take(&input); query.Error != nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"message": "Error when querying the database.",
+				"statusCode": http.StatusNotFound,
+				"error":   query.Error.Error(),
+			})
+			return
+		}
 
 		if err := c.BindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H {
@@ -98,7 +106,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 			Harga: input.Harga,
 		}
 
-		result := db.Where("id = ?", id).Model(&patchOperasional).Updates(patchOperasional)
+		result := db.Where("id = ?", input.ID).Model(&patchOperasional).Updates(patchOperasional)
 
 		if result.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -110,7 +118,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 			return
 		}
 
-		if result = db.Where("id = ?", id).Take(&patchOperasional); result.Error != nil {
+		if result = db.Order("id desc").Take(&patchOperasional); result.Error != nil {
 			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"message": "Error when querying the database.",
@@ -234,18 +242,34 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 	r.GET("/articles", func(c *gin.Context) {
 		var allArticle []Entities.Artikel
 
-		if res := db.Find(&allArticle); res.Error != nil {
-			c.JSON(http.StatusInternalServerError, gin.H {
-				"success": false,
-				"message": "failed when query all article",
-				"statusCode": http.StatusInternalServerError,
-				"error": res.Error.Error(),
-			})
-			return
+		limit, _ := c.GetQuery("limit")
+
+		if limit == "true" {
+			if res := db.Order("id desc").Limit(3).Find(&allArticle); res.Error != nil {
+				c.JSON(http.StatusInternalServerError, gin.H {
+					"success": false,
+					"message": "failed when query all article",
+					"statusCode": http.StatusInternalServerError,
+					"error": res.Error.Error(),
+				})
+				return
+			}
+		} else {
+			if res := db.Order("id desc").Find(&allArticle); res.Error != nil {
+				c.JSON(http.StatusInternalServerError, gin.H {
+					"success": false,
+					"message": "failed when query all article",
+					"statusCode": http.StatusInternalServerError,
+					"error": res.Error.Error(),
+				})
+				return
+			}
 		}
+
+		
 		c.JSON(http.StatusOK, gin.H {
 			"success": true,
-			"statusCode": http.StatusInternalServerError,
+			"statusCode": http.StatusOK,
 			"error": nil,
 			"data": allArticle,
 		})
@@ -320,24 +344,21 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		}
 
 		// enText := slug.MakeLang(c.PostForm("title"), "en")
-		enText := slug.MakeLang(c.PostForm("title"), "en")
 
 		excerpt := stripmd.Strip(c.PostForm("body"))
 		if (len(excerpt) > 120) {
 			excerpt = excerpt[:120]
 		} 
 
-		newArticle := Entities.Artikel {
-			Title: c.PostForm("title"),
-			Slug: enText,
-			Excerpt: excerpt,
-			Body: c.PostForm("body"),
-		}
+		var newArticle Entities.Artikel
 
 		image, _ := c.FormFile("image")
 
 		if image == nil {
 			newArticle = Entities.Artikel{
+				Title: c.PostForm("title"),
+				Excerpt: excerpt,
+				Body: c.PostForm("body"),
 				Image: article.Image,
 			}
 		} else {
@@ -364,11 +385,14 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			}
 
 			newArticle = Entities.Artikel{
+				Title: c.PostForm("title"),
+				Excerpt: excerpt,
+				Body: c.PostForm("body"),
 				Image: os.Getenv("BASE_URL") + "/article/image/" + image.Filename,
 			}
 		}
 
-		if err := db.Where("slug = ?", search).Model(&article).Updates(newArticle); err.Error != nil {
+		if err := db.Where("slug = ?", search).Model(&newArticle).Updates(newArticle); err.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "error when inserting a new agenda",
@@ -378,12 +402,22 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			return
 		}
 
+		if res := db.Where("slug = ?", search).Take(&article); res.Error != nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"message": "Something went wrong",
+				"statusCode": http.StatusNotFound,
+				"error":   res.Error.Error(),
+			})
+			return
+		}
+
 		c.JSON(http.StatusCreated, gin.H{
 			"success": true,
 			"message": "a new article has successfully updated",
 			"error":   nil,
 			"statusCode": http.StatusOK,
-			"data":    newArticle,
+			"data":    article,
 		})
 	})
 
@@ -406,7 +440,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": "Delete successful.",
-			"statusCode": http.StatusInternalServerError,
+			"statusCode": http.StatusOK,
 		})
 	})
 }

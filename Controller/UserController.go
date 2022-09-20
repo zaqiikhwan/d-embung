@@ -48,7 +48,7 @@ func TestimoniController(db *gorm.DB, r *gin.Engine) {
 	r.GET("/testimoni", func(c *gin.Context) {
 		var allTestimoni []Entities.Testimoni
 
-		if err := db.Order("id desc").Find(&allTestimoni).Limit(3); err.Error != nil {
+		if err := db.Order("id desc").Limit(3).Find(&allTestimoni); err.Error != nil {
 			c.JSON(http.StatusNotFound, gin.H{
 				"message": "can't find testimonies",
 				"success": false,
