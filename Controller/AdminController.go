@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	stripmd "github.com/writeas/go-strip-markdown"
@@ -306,11 +305,11 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 
 	// patch article 
 	r.PATCH("/article/:slug", func(c *gin.Context) {
-		slug, _ := c.FormFile("slug")
+		search, _ := c.Params.Get("slug")
 
 		var article Entities.Artikel
 
-		if res := db.Where("id = ?", slug).Take(&article); res.Error != nil {
+		if res := db.Where("slug = ?", search).Take(&article); res.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "Something went wrong",
@@ -320,10 +319,18 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			return
 		}
 
+		// enText := slug.MakeLang(c.PostForm("title"), "en")
+		enText := slug.MakeLang(c.PostForm("title"), "en")
+
+		excerpt := stripmd.Strip(c.PostForm("body"))
+		if (len(excerpt) > 120) {
+			excerpt = excerpt[:120]
+		} 
+
 		newArticle := Entities.Artikel {
 			Title: c.PostForm("title"),
-			Slug: strings.ToLower(strings.ReplaceAll(c.PostForm("title"), " ", "-")),
-			Excerpt: c.PostForm("excerpt"),
+			Slug: enText,
+			Excerpt: excerpt,
 			Body: c.PostForm("body"),
 		}
 
@@ -361,7 +368,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			}
 		}
 
-		if err := db.Where("slug = ?", slug).Model(&article).Updates(newArticle); err.Error != nil {
+		if err := db.Where("slug = ?", search).Model(&article).Updates(newArticle); err.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"message": "error when inserting a new agenda",
