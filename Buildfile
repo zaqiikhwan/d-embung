@@ -1,0 +1,1 @@
+build: go build -o bin/backend-d-embung main.go
