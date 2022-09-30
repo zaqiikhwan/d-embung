@@ -60,7 +60,7 @@ func main() {
 	Controller.OperasionalController(db, r)
 	Controller.TestimoniController(db, r)
 	Controller.ArticleController(db, r)
-	if err := r.Run(); err != nil {
+	if err := r.Run("8000"); err != nil {
 		log.Fatal(err.Error())
 		return
 	}
