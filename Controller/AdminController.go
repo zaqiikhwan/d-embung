@@ -12,7 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
-	"github.com/joho/godotenv"
+	_"github.com/joho/godotenv"
 	"gorm.io/gorm"
 )
 
@@ -194,7 +194,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		})
 		image.Filename = string(shuff)
 		
-		godotenv.Load("../.env")
+		// godotenv.Load("../.env")
 
 		if err := c.SaveUploadedFile(image, "./Images/"+image.Filename); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -373,7 +373,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			})
 			image.Filename = string(shuff)
 
-			godotenv.Load("../.env")
+			// godotenv.Load("../.env")
 
 			if err := c.SaveUploadedFile(image, "./Images/"+image.Filename); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
