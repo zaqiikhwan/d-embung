@@ -3,16 +3,15 @@ package Controller
 import (
 	_ "backend-d-embung/Auth"
 	"backend-d-embung/Entities"
-	"math/rand"
+	"fmt"
 	"net/http"
 	"os"
-	"time"
-
-	stripmd "github.com/writeas/go-strip-markdown"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
-	_"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv"
+	storage_go "github.com/supabase-community/storage-go"
+	stripmd "github.com/writeas/go-strip-markdown"
 	"gorm.io/gorm"
 )
 
@@ -60,10 +59,10 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 		var operasional Entities.Operasional
 
 		if err := db.Order("id desc").Take(&operasional); err.Error != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
+			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"message": "operational isn't available",
-				"statusCode": http.StatusInternalServerError,
+				"statusCode": http.StatusNotFound,
 				"error": err.Error.Error(),
 			})
 			return
@@ -182,28 +181,14 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			})
 			return
 		}
+		imageIo, _ := image.Open()
+		client := storage_go.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SERVICE_TOKEN"), nil)
+	
+	
+		resp := client.UploadFile("images", image.Filename, imageIo)
 
-		rand.Seed(time.Now().Unix())
+		fmt.Println(resp)
 
-		str := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-		shuff := []rune(str)
-
-		rand.Shuffle(len(shuff), func(i, j int) {
-			shuff[i], shuff[j] = shuff[j], shuff[i]
-		})
-		image.Filename = string(shuff)
-		
-		// godotenv.Load("../.env")
-
-		if err := c.SaveUploadedFile(image, "./Images/"+image.Filename); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"Success": false,
-				"statusCode": http.StatusBadRequest,
-				"error":   "upload file err: " + err.Error(),
-			})
-			return
-		}
 		enText := slug.MakeLang(c.PostForm("title"), "en")
 
 		excerpt := stripmd.Strip(c.PostForm("body"))
@@ -214,7 +199,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		newArticle := Entities.Artikel {
 			Title: c.PostForm("title"),
 			Slug: enText,
-			Image: os.Getenv("BASE_URL") + "/article/image/" + image.Filename,
+			Image: os.Getenv("BASE_URL") + image.Filename,
 			Excerpt: excerpt,
 			Body: c.PostForm("body"),
 		}
@@ -343,8 +328,6 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			return
 		}
 
-		// enText := slug.MakeLang(c.PostForm("title"), "en")
-
 		excerpt := stripmd.Strip(c.PostForm("body"))
 		if (len(excerpt) > 120) {
 			excerpt = excerpt[:120]
@@ -362,33 +345,26 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 				Image: article.Image,
 			}
 		} else {
-			rand.Seed(time.Now().Unix())
 
-			str := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+			imageIo, _ := image.Open()
+			client := storage_go.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SERVICE_TOKEN"), nil)
+		
+		
+			resp := client.UploadFile("images", image.Filename, imageIo)
 
-			shuff := []rune(str)
+			fmt.Println(resp)
 
-			rand.Shuffle(len(shuff), func(i, j int) {
-				shuff[i], shuff[j] = shuff[j], shuff[i]
-			})
-			image.Filename = string(shuff)
+			excerpt := stripmd.Strip(c.PostForm("body"))
+			if (len(excerpt) > 120) {
+				excerpt = excerpt[:120]
+			} 
 
-			// godotenv.Load("../.env")
-
-			if err := c.SaveUploadedFile(image, "./Images/"+image.Filename); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"Success": false,
-					"statusCode": http.StatusBadRequest,
-					"error":   "upload file err: " + err.Error(),
-				})
-				return
-			}
 
 			newArticle = Entities.Artikel{
 				Title: c.PostForm("title"),
 				Excerpt: excerpt,
 				Body: c.PostForm("body"),
-				Image: os.Getenv("BASE_URL") + "/article/image/" + image.Filename,
+				Image: os.Getenv("BASE_URL") + image.Filename,
 			}
 		}
 
