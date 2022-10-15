@@ -522,6 +522,36 @@ func Authorization(db *gorm.DB, r *gin.Engine) {
 		}
 	})
 
-	r.POST("/authToken", Auth.Authorization())
+	r.POST("/authToken", Auth.Authorization(), func(c *gin.Context) {
+		id, err := c.Get("id")
+		
+		var Auth Entities.Admin
+
+		if !err {
+			c.JSON(http.StatusUnauthorized, gin.H {
+				"statusCode": http.StatusUnauthorized,
+				"success": false,
+				"message": "id is not exist",
+				"error": err,
+			})
+			return
+		}
+
+		if err := db.Where("id = ?", id).Take(&Auth); err.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H {
+				"statusCode": http.StatusInternalServerError,
+				"success": false,
+				"message": "error when querying user from database",
+				"error": err.Error.Error(),
+			})
+		}
+
+		c.JSON(http.StatusOK, gin.H {
+			"statusCode": http.StatusOK,
+			"success": true,
+			"message": "berhasil login",
+			"error": nil,
+		})
+	})
 }
 
