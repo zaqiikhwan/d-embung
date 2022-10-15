@@ -1,7 +1,7 @@
 package Controller
 
 import (
-	_ "backend-d-embung/Auth"
+	"backend-d-embung/Auth"
 	"backend-d-embung/Entities"
 	"fmt"
 	"net/http"
@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gosimple/slug"
-	"github.com/joho/godotenv"
 	storage_go "github.com/supabase-community/storage-go"
 	stripmd "github.com/writeas/go-strip-markdown"
 	"golang.org/x/crypto/bcrypt"
@@ -20,7 +19,7 @@ import (
 
 func OperasionalController(db *gorm.DB, r *gin.Engine) {
 	// post a new operational
-	r.POST("/operasional", func(c *gin.Context) {
+	r.POST("/operasional", Auth.Authorization(), func(c *gin.Context) {
 		var input Entities.Operasional
 
 		if err := c.BindJSON(&input); err != nil {
@@ -80,7 +79,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 	})
 
 	// patch operational time
-	r.PATCH("/operasional", func(c *gin.Context) {
+	r.PATCH("/operasional", Auth.Authorization(), func(c *gin.Context) {
 		var input Entities.Operasional
 
 		if query := db.Order("id desc").Take(&input); query.Error != nil {
@@ -148,7 +147,7 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 	})
 
 	// delete operational time by id
-	r.DELETE("/operasional/:id", func(c *gin.Context) {
+	r.DELETE("/operasional/:id", Auth.Authorization(), func(c *gin.Context) {
 		id, _ := c.Params.Get("id")
 
 		var operasional Entities.Operasional
@@ -172,13 +171,13 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 
 func ArticleController(db *gorm.DB, r *gin.Engine) {
 	// post new article
-	r.POST("/article", func(c *gin.Context) {
+	r.POST("/article", Auth.Authorization(), func(c *gin.Context) {
 		image, err := c.FormFile("image")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"statusCode": http.StatusBadRequest,
 				"success": false,
 				"error":   "get form err: " + err.Error(),
+				"statusCode": http.StatusBadRequest,
 			})
 			return
 		}
@@ -267,7 +266,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 
 		var allArticle []Entities.Artikel
 
-		if res := db.Where("title LIKE ?", "%"+query+"%").Find(&allArticle); res.Error != nil {
+		if res := db.Where("title ILIKE ?", "%"+query+"%").Find(&allArticle); res.Error != nil {
 			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"message": "Hasil Pencarian Tidak Ditemukan",
@@ -314,7 +313,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 	})
 
 	// patch article 
-	r.PATCH("/article/:slug", func(c *gin.Context) {
+	r.PATCH("/article/:slug", Auth.Authorization(), func(c *gin.Context) {
 		search, _ := c.Params.Get("slug")
 
 		var article Entities.Artikel
@@ -399,7 +398,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 	})
 
 	// delete article
-	r.DELETE("/article/:slug", func(c *gin.Context) {
+	r.DELETE("/article/:slug", Auth.Authorization(), func(c *gin.Context) {
 		slug, _ := c.Params.Get("slug")
 
 		var article Entities.Artikel
@@ -430,6 +429,7 @@ func Register(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusBadRequest, gin.H {
 				"success": false,
 				"message": "input should bind json",
+				"statusCode": http.StatusBadRequest,
 				"error": err.Error(),
 			})
 			return
@@ -445,15 +445,16 @@ func Register(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusInternalServerError, gin.H {
 				"message": "failed when creating a new data user",
 				"success": false,
+				"statusCode": http.StatusInternalServerError,
 				"error": err.Error.Error(),
 			})
 			return
 		}
 
 		c.JSON(http.StatusCreated, gin.H {
-			"statusCode": http.StatusCreated,
 			"message": "registered successfully",
 			"success": true,
+			"statusCode": http.StatusCreated,
 			"error": nil,
 		})
 	})
@@ -463,9 +464,9 @@ func Register(db *gorm.DB, r *gin.Engine) {
 
 		if err := c.BindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"statusCode": http.StatusBadRequest,
 				"success": false,
 				"message": "input must bind with json",
+				"statusCode": http.StatusBadRequest,
 				"error":   err.Error(),
 			})
 			return
@@ -474,10 +475,10 @@ func Register(db *gorm.DB, r *gin.Engine) {
 		var user Entities.Admin
 
 		if err := db.Where("nickname = ?", input.Nickname).Take(&user); err.Error != nil {
-			c.JSON(http.StatusInternalServerError, gin.H {
-				"statusCode": http.StatusInternalServerError,
+			c.JSON(http.StatusBadRequest, gin.H {
 				"success": false,
 				"message": "nickname Anda tidak sesuai.",
+				"statusCode": http.StatusBadRequest,
 				"error":   err.Error.Error(),
 			})
 			return
@@ -491,17 +492,18 @@ func Register(db *gorm.DB, r *gin.Engine) {
 				"id":  user.ID,
 				"exp": time.Now().Add(time.Hour * 30 * 24).Unix(),
 			})
-			godotenv.Load("../.env")
 			strToken, err := token.SignedString([]byte(os.Getenv("TOKEN_G")))
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"success": false,
 					"message": "Something went wrong",
+					"statusCode": http.StatusInternalServerError,
 					"error":   err.Error(),
 				})
 				return
 			}
 			c.JSON(http.StatusOK, gin.H{
+				"statusCode": http.StatusOK,
 				"success": true,
 				"message": "Welcome, here's your token. don't lose it ;)",
 				"data": gin.H{
@@ -513,6 +515,7 @@ func Register(db *gorm.DB, r *gin.Engine) {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": error,
 				"success": false,
+				"statusCode": http.StatusForbidden,
 				"message": "password Anda salah.",
 			})
 			return

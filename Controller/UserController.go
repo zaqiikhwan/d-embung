@@ -1,6 +1,7 @@
 package Controller
 
 import (
+	"backend-d-embung/Auth"
 	"backend-d-embung/Entities"
 	"net/http"
 
@@ -9,7 +10,7 @@ import (
 )
 
 func TestimoniController(db *gorm.DB, r *gin.Engine) {
-	r.POST("/testimoni", func(c *gin.Context) {
+	r.POST("/testimoni", Auth.Authorization(), func(c *gin.Context) {
 		var input Entities.Testimoni
 
 		if err := c.BindJSON(&input); err != nil {
