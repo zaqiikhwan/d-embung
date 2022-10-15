@@ -421,7 +421,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 	})
 }
 
-func Register(db *gorm.DB, r *gin.Engine) {
+func Authorization(db *gorm.DB, r *gin.Engine) {
 	r.POST("/register", func(c *gin.Context) {
 		var input Entities.Admin
 
@@ -521,4 +521,7 @@ func Register(db *gorm.DB, r *gin.Engine) {
 			return
 		}
 	})
+
+	r.POST("/authToken", Auth.Authorization())
 }
+

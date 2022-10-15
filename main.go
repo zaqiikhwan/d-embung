@@ -60,7 +60,7 @@ func main() {
 	Controller.OperasionalController(db, r)
 	Controller.TestimoniController(db, r)
 	Controller.ArticleController(db, r)
-	Controller.Register(db, r)
+	Controller.Authorization(db, r)
 	if err := r.Run(); err != nil {
 		log.Fatal(err.Error())
 		return
