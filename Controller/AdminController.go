@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gosimple/slug"
-	_ "github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 	storage_go "github.com/supabase-community/storage-go"
 	stripmd "github.com/writeas/go-strip-markdown"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -168,8 +171,6 @@ func OperasionalController(db *gorm.DB, r *gin.Engine) {
 }
 
 func ArticleController(db *gorm.DB, r *gin.Engine) {
-	r.Static("/article/image", "./Images")
-
 	// post new article
 	r.POST("/article", func(c *gin.Context) {
 		image, err := c.FormFile("image")
@@ -418,5 +419,103 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			"message": "Delete successful.",
 			"statusCode": http.StatusOK,
 		})
+	})
+}
+
+func Register(db *gorm.DB, r *gin.Engine) {
+	r.POST("/register", func(c *gin.Context) {
+		var input Entities.Admin
+
+		if err := c.BindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H {
+				"success": false,
+				"message": "input should bind json",
+				"error": err.Error(),
+			})
+			return
+		}
+
+		hashedPassword,_ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		user := Entities.Admin {
+			Nickname: input.Nickname,
+			Password: string(hashedPassword),
+		}
+
+		if err := db.Create(&user); err.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H {
+				"message": "failed when creating a new data user",
+				"success": false,
+				"error": err.Error.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H {
+			"statusCode": http.StatusCreated,
+			"message": "registered successfully",
+			"success": true,
+			"error": nil,
+		})
+	})
+
+	r.POST("/login", func(c *gin.Context) {
+		var input Entities.Admin
+
+		if err := c.BindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"statusCode": http.StatusBadRequest,
+				"success": false,
+				"message": "input must bind with json",
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		var user Entities.Admin
+
+		if err := db.Where("nickname = ?", input.Nickname).Take(&user); err.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H {
+				"statusCode": http.StatusInternalServerError,
+				"success": false,
+				"message": "nickname Anda tidak sesuai.",
+				"error":   err.Error.Error(),
+			})
+			return
+		}
+
+		hashedInput, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		error := bcrypt.CompareHashAndPassword([]byte(user.Password), hashedInput)
+		
+		if error != nil {
+			token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
+				"id":  user.ID,
+				"exp": time.Now().Add(time.Hour * 30 * 24).Unix(),
+			})
+			godotenv.Load("../.env")
+			strToken, err := token.SignedString([]byte(os.Getenv("TOKEN_G")))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"success": false,
+					"message": "Something went wrong",
+					"error":   err.Error(),
+				})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"success": true,
+				"message": "Welcome, here's your token. don't lose it ;)",
+				"data": gin.H{
+					"data": user.Nickname,
+					"token": strToken,
+				},
+			})
+		} else {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": error,
+				"success": false,
+				"message": "password Anda salah.",
+			})
+			return
+		}
 	})
 }
