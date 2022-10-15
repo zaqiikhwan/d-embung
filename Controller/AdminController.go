@@ -544,6 +544,7 @@ func Authorization(db *gorm.DB, r *gin.Engine) {
 				"message": "error when querying user from database",
 				"error": err.Error.Error(),
 			})
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H {
