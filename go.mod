@@ -1,3 +1,4 @@
+// +heroku goVersion go1.18
 module backend-d-embung
 
 go 1.18
