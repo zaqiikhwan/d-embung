@@ -3,7 +3,7 @@ package Controller
 import (
 	"backend-d-embung/Auth"
 	"backend-d-embung/Entities"
-	"fmt"
+	"backend-d-embung/Handlers"
 	"net/http"
 	"os"
 	"time"
@@ -185,9 +185,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		client := storage_go.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SERVICE_TOKEN"), nil)
 	
 	
-		resp := client.UploadFile("images", image.Filename, imageIo)
-
-		fmt.Println(resp)
+		client.UploadFile("images", image.Filename, imageIo)
 
 		enText := slug.MakeLang(c.PostForm("title"), "en")
 
@@ -345,20 +343,15 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 				Image: article.Image,
 			}
 		} else {
-
 			imageIo, _ := image.Open()
 			client := storage_go.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SERVICE_TOKEN"), nil)
-		
-		
-			resp := client.UploadFile("images", image.Filename, imageIo)
-
-			fmt.Println(resp)
+			client.DeleteBucket(article.Image)
+			client.UploadFile("images", image.Filename, imageIo)
 
 			excerpt := stripmd.Strip(c.PostForm("body"))
 			if (len(excerpt) > 120) {
 				excerpt = excerpt[:120]
 			} 
-
 
 			newArticle = Entities.Artikel{
 				Title: c.PostForm("title"),
@@ -554,5 +547,17 @@ func Authorization(db *gorm.DB, r *gin.Engine) {
 			"error": nil,
 		})
 	})
+}
+
+func Post(r *gin.Engine) {
+	r.POST("/picture", Handlers.PostPicture)
+
+	r.GET("/picture/:id", Handlers.GetPictureByID)
+
+	r.GET("/pictures", Handlers.GetAllPicture)
+
+	r.PATCH("/picture/:id", Handlers.PatchPicture)
+
+	r.DELETE("/picture/:id", Handlers.DeletePicture)
 }
 

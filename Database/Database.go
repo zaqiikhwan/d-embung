@@ -46,6 +46,7 @@ func Open() *gorm.DB {
 		Entities.Operasional{}, 
 		Entities.Testimoni{},
 		Entities.Admin{},
+		Entities.Photo{},
 	); 
 	err != nil {
 		log.Fatal(err.Error())

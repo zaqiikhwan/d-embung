@@ -61,16 +61,9 @@ func main() {
 	Controller.TestimoniController(db, r)
 	Controller.ArticleController(db, r)
 	Controller.Authorization(db, r)
+	Controller.Post(r)
 	if err := r.Run(); err != nil {
 		log.Fatal(err.Error())
 		return
 	}
 }
-
-// hash sha512 untuk password
-// func hash(input string) string {
-// 	hash := sha512.New()
-// 	hash.Write([]byte(input))
-// 	pass := hex.EncodeToString(hash.Sum(nil))
-// 	return pass
-// }
