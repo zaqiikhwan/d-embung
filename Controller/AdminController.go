@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gosimple/slug"
+	"github.com/microcosm-cc/bluemonday"
 	storage_go "github.com/supabase-community/storage-go"
 	stripmd "github.com/writeas/go-strip-markdown"
 	"golang.org/x/crypto/bcrypt"
@@ -184,12 +185,12 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		imageIo, _ := image.Open()
 		client := storage_go.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SERVICE_TOKEN"), nil)
 	
-	
+		p := bluemonday.NewPolicy()
 		client.UploadFile("images", image.Filename, imageIo)
 
 		enText := slug.MakeLang(c.PostForm("title"), "en")
 
-		excerpt := stripmd.Strip(c.PostForm("body"))
+		excerpt := p.Sanitize(stripmd.Strip(c.PostForm("body")))
 		if (len(excerpt) > 120) {
 			excerpt = excerpt[:120]
 		} 
@@ -325,8 +326,9 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			})
 			return
 		}
+		p := bluemonday.NewPolicy()
 
-		excerpt := stripmd.Strip(c.PostForm("body"))
+		excerpt := p.Sanitize(stripmd.Strip(c.PostForm("body")))
 		if (len(excerpt) > 120) {
 			excerpt = excerpt[:120]
 		} 
@@ -561,3 +563,10 @@ func Post(r *gin.Engine) {
 	r.DELETE("/picture/:id", Handlers.DeletePicture)
 }
 
+func AdditionalInfo(r *gin.Engine) {
+	r.POST("/info", Handlers.PostInformation)
+
+	r.GET("/info", Handlers.GetAllInformation)
+
+	r.PATCH("/info", Handlers.PatchInformation)
+}

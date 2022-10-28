@@ -3,20 +3,20 @@ package main
 import (
 	"backend-d-embung/Controller"
 	"backend-d-embung/Database"
-	_"crypto/sha512"
-	_"encoding/hex"
+	_ "crypto/sha512"
+	_ "encoding/hex"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	_"github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// if err := godotenv.Load(); err != nil {
-	// 	log.Fatal(err.Error())
-	// }
+	if err := godotenv.Load(); err != nil {
+		log.Fatal(err.Error())
+	}
 
 	//Database
 	db := Database.Open()
@@ -62,6 +62,7 @@ func main() {
 	Controller.ArticleController(db, r)
 	Controller.Authorization(db, r)
 	Controller.Post(r)
+	Controller.AdditionalInfo(r)
 	if err := r.Run(); err != nil {
 		log.Fatal(err.Error())
 		return

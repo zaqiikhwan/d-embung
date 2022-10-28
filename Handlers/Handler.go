@@ -5,6 +5,7 @@ import (
 	"backend-d-embung/Entities"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	storage_go "github.com/supabase-community/storage-go"
@@ -201,4 +202,144 @@ func GetAllPicture(c *gin.Context) {
 			"error": nil,
 			"data": allPicture,
 		})
+}
+
+func PostInformation(c *gin.Context) {
+	type linkArray struct {
+		Description string `json:"description"`
+		LinkImage []string `json:"linkImage"`
+	}
+
+	var linkInputDesc linkArray
+
+	if err := c.BindJSON(&linkInputDesc); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H {
+			"success": false,
+			"message": "input should bind json",
+			"statusCode": http.StatusBadRequest,
+			"error": err.Error(),
+		})
+		return
+	}
+	combined := strings.Join(linkInputDesc.LinkImage, ";")
+
+	newInfo := Entities.AdditionalInfo {
+		Description: linkInputDesc.Description,
+		LinkImages: combined,
+	}
+
+	if err := Database.Open().Create(&newInfo); err.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success":    false,
+			"message":    "error when inserting a new photo",
+			"statusCode": http.StatusInternalServerError,
+			"error":      err.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H {
+		"success": true,
+		"message": "a new additional info has successfully created",
+		"statusCode": http.StatusCreated,
+		"data": newInfo.ID,
+	})
+}
+
+func GetAllInformation(c *gin.Context) {
+	var getInfo Entities.AdditionalInfo
+
+	if err := Database.Open().Order("id desc").Take(&getInfo); err.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H {
+			"success": false,
+			"message": "input should bind json",
+			"statusCode": http.StatusBadRequest,
+			"error": err.Error.Error(),
+		})
+		return
+	}
+
+	splitedLink := strings.Split(getInfo.LinkImages, ";")
+
+	c.JSON(http.StatusOK, gin.H {
+		"success": true,
+		"statusCode": http.StatusOK,
+		"description": getInfo.Description,
+		"linkImage": splitedLink, 
+	})
+}
+
+func PatchInformation(c *gin.Context) {
+	var info Entities.AdditionalInfo
+
+	if query := Database.Open().Order("id desc").Take(&info); query.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"message": "Error when querying the database.",
+			"statusCode": http.StatusNotFound,
+			"error":   query.Error.Error(),
+		})
+		return
+	}
+
+	type linkArray struct {
+		Description string `json:"description"`
+		LinkImage []string `json:"linkImage"`
+	}
+
+	var linkInputDesc linkArray
+
+	if err := c.BindJSON(&linkInputDesc); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H {
+			"success": false,
+			"message": "input should bind json",
+			"statusCode": http.StatusBadRequest,
+			"error": err.Error(),
+		})
+		return
+	}
+	combined := strings.Join(linkInputDesc.LinkImage, ";")
+
+	patchInfo := Entities.AdditionalInfo {
+		Description: linkInputDesc.Description,
+		LinkImages: combined,
+	}
+
+	result := Database.Open().Where("id = ?", info.ID).Model(&patchInfo).Updates(patchInfo)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error when updating new operational.",
+			"statusCode": http.StatusInternalServerError,
+			"error":   result.Error.Error(),
+		})
+		return
+	}
+
+	if result = Database.Open().Order("id desc").Take(&patchInfo); result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"message": "Error when querying the database.",
+			"statusCode": http.StatusNotFound,
+			"error":   result.Error.Error(),
+		})
+		return
+	}
+
+	if result.RowsAffected < 1 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"message": "info not found.",
+			"statusCode": http.StatusNotFound,
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"message": "Update successful.",
+		"statusCode": http.StatusOK,
+		"data":    patchInfo,
+	})
 }
