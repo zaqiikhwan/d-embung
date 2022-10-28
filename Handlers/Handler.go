@@ -176,20 +176,20 @@ func GetAllPicture(c *gin.Context) {
 
 		if limit == "true" {
 			if res := Database.Open().Order("id desc").Limit(3).Find(&allPicture); res.Error != nil {
-				c.JSON(http.StatusInternalServerError, gin.H {
+				c.JSON(http.StatusNotFound, gin.H {
 					"success": false,
-					"message": "failed when query all article",
-					"statusCode": http.StatusInternalServerError,
+					"message": "failed when query all picture",
+					"statusCode": http.StatusNotFound,
 					"error": res.Error.Error(),
 				})
 				return
 			}
 		} else {
 			if res := Database.Open().Order("id desc").Find(&allPicture); res.Error != nil {
-				c.JSON(http.StatusInternalServerError, gin.H {
+				c.JSON(http.StatusNotFound, gin.H {
 					"success": false,
-					"message": "failed when query all article",
-					"statusCode": http.StatusInternalServerError,
+					"message": "failed when query all picture",
+					"statusCode": http.StatusNotFound,
 					"error": res.Error.Error(),
 				})
 				return
