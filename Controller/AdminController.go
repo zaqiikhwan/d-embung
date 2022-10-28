@@ -13,7 +13,6 @@ import (
 	"github.com/gosimple/slug"
 	"github.com/microcosm-cc/bluemonday"
 	storage_go "github.com/supabase-community/storage-go"
-	stripmd "github.com/writeas/go-strip-markdown"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -190,7 +189,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 
 		enText := slug.MakeLang(c.PostForm("title"), "en")
 
-		excerpt := p.Sanitize(stripmd.Strip(c.PostForm("body")))
+		excerpt := p.Sanitize(c.PostForm("body"))
 		if (len(excerpt) > 120) {
 			excerpt = excerpt[:120]
 		} 
@@ -328,7 +327,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		}
 		p := bluemonday.NewPolicy()
 
-		excerpt := p.Sanitize(stripmd.Strip(c.PostForm("body")))
+		excerpt := p.Sanitize(c.PostForm("body"))
 		if (len(excerpt) > 120) {
 			excerpt = excerpt[:120]
 		} 
@@ -350,7 +349,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			client.DeleteBucket(article.Image)
 			client.UploadFile("images", image.Filename, imageIo)
 
-			excerpt := stripmd.Strip(c.PostForm("body"))
+			excerpt := p.Sanitize(c.PostForm("body"))
 			if (len(excerpt) > 120) {
 				excerpt = excerpt[:120]
 			} 
