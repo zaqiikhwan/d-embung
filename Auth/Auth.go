@@ -12,6 +12,16 @@ import (
 func Authorization() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.Request.Header.Get("Authorization")
+
+		if header == "" {
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"message": "no JWT provided.",
+				"error":   nil,
+			})
+			c.Abort()
+			return
+		}
 		header = header[len("Bearer "):]
 		// godotenv.Load("../.env")
 		token, err := jwt.Parse(header, func(t *jwt.Token) (interface{}, error) {
