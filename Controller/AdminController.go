@@ -4,14 +4,17 @@ import (
 	"backend-d-embung/Auth"
 	"backend-d-embung/Entities"
 	"backend-d-embung/Handlers"
+	"bytes"
+	"html"
+	"html/template"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gosimple/slug"
-	"github.com/microcosm-cc/bluemonday"
 	storage_go "github.com/supabase-community/storage-go"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -184,12 +187,12 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 		imageIo, _ := image.Open()
 		client := storage_go.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SERVICE_TOKEN"), nil)
 	
-		p := bluemonday.NewPolicy()
+		// p := bluemonday.NewPolicy()
 		client.UploadFile("images", image.Filename, imageIo)
 
 		enText := slug.MakeLang(c.PostForm("title"), "en")
 
-		excerpt := p.Sanitize(c.PostForm("body"))
+		excerpt := HTML(c.PostForm("body"))
 		if (len(excerpt) > 120) {
 			excerpt = excerpt[:120]
 		} 
@@ -325,9 +328,9 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			})
 			return
 		}
-		p := bluemonday.NewPolicy()
+		// p := bluemonday.NewPolicy()
 
-		excerpt := p.Sanitize(c.PostForm("body"))
+		excerpt := HTML(c.PostForm("body"))
 		if (len(excerpt) > 120) {
 			excerpt = excerpt[:120]
 		} 
@@ -349,7 +352,7 @@ func ArticleController(db *gorm.DB, r *gin.Engine) {
 			client.DeleteBucket(article.Image)
 			client.UploadFile("images", image.Filename, imageIo)
 
-			excerpt := p.Sanitize(c.PostForm("body"))
+			excerpt := HTML(c.PostForm("body"))
 			if (len(excerpt) > 120) {
 				excerpt = excerpt[:120]
 			} 
@@ -551,21 +554,81 @@ func Authorization(db *gorm.DB, r *gin.Engine) {
 }
 
 func Post(r *gin.Engine) {
-	r.POST("/picture", Handlers.PostPicture)
+	r.POST("/picture", Auth.Authorization(), Handlers.PostPicture)
 
 	r.GET("/picture/:id", Handlers.GetPictureByID)
 
 	r.GET("/pictures", Handlers.GetAllPicture)
 
-	r.PATCH("/picture/:id", Handlers.PatchPicture)
+	r.PATCH("/picture/:id", Auth.Authorization(), Handlers.PatchPicture)
 
-	r.DELETE("/picture/:id", Handlers.DeletePicture)
+	r.DELETE("/picture/:id", Auth.Authorization(), Handlers.DeletePicture)
 }
 
 func AdditionalInfo(r *gin.Engine) {
-	r.POST("/info", Handlers.PostInformation)
+	r.POST("/info", Auth.Authorization(), Handlers.PostInformation)
 
 	r.GET("/info", Handlers.GetAllInformation)
 
-	r.PATCH("/info", Handlers.PatchInformation)
+	r.PATCH("/info", Auth.Authorization(), Handlers.PatchInformation)
+}
+
+func HTML(s string) (output string) {
+
+	// Shortcut strings with no tags in them
+	if !strings.ContainsAny(s, "<>") {
+		output = s
+	} else {
+
+		// First remove line breaks etc as these have no meaning outside html tags (except pre)
+		// this means pre sections will lose formatting... but will result in less unintentional paras.
+		s = strings.Replace(s, "\n", "", -1)
+
+		// Then replace line breaks with newlines, to preserve that formatting
+		s = strings.Replace(s, "</p>", " ", -1)
+		s = strings.Replace(s, "<br>", " ", -1)
+		s = strings.Replace(s, "</br>", " ", -1)
+		s = strings.Replace(s, "<br/>", " ", -1)
+		s = strings.Replace(s, "<br />", " ", -1)
+
+		// Walk through the string removing all tags
+		b := bytes.NewBufferString("")
+		inTag := false
+		for _, r := range s {
+			switch r {
+			case '<':
+				inTag = true
+			case '>':
+				inTag = false
+			default:
+				if !inTag {
+					b.WriteRune(r)
+				}
+			}
+		}
+		output = b.String()
+	}
+
+	// Remove a few common harmless entities, to arrive at something more like plain text
+	output = strings.Replace(output, "&#8216;", "'", -1)
+	output = strings.Replace(output, "&#8217;", "'", -1)
+	output = strings.Replace(output, "&#8220;", "\"", -1)
+	output = strings.Replace(output, "&#8221;", "\"", -1)
+	output = strings.Replace(output, "&nbsp;", " ", -1)
+	output = strings.Replace(output, "&quot;", "\"", -1)
+	output = strings.Replace(output, "&apos;", "'", -1)
+
+	// Translate some entities into their plain text equivalent (for example accents, if encoded as entities)
+	output = html.UnescapeString(output)
+
+	// In case we have missed any tags above, escape the text - removes <, >, &, ' and ".
+	output = template.HTMLEscapeString(output)
+
+	// After processing, remove some harmless entities &, ' and " which are encoded by HTMLEscapeString
+	output = strings.Replace(output, "&#34;", "\"", -1)
+	output = strings.Replace(output, "&#39;", "'", -1)
+	output = strings.Replace(output, "&amp; ", "& ", -1)     // NB space after
+	output = strings.Replace(output, "&amp;amp; ", "& ", -1) // NB space after
+
+	return output
 }
