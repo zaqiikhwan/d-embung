@@ -170,7 +170,7 @@ func DeletePicture(c *gin.Context) {
 }
 
 func GetAllPicture(c *gin.Context) {
-	var allPicture Entities.Photo
+	var allPicture []Entities.Photo
 
 	limit, _ := c.GetQuery("limit")
 
