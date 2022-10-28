@@ -57,7 +57,7 @@ func PostPicture(c *gin.Context) {
 	})
 }
 
-func GetPictureByID (c *gin.Context) {
+func GetPictureByID(c *gin.Context) {
 	id, _ := c.Params.Get("id")
 
 	var getPicture Entities.Photo
