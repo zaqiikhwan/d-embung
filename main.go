@@ -57,9 +57,9 @@ func main() {
 			"success": true,
 		})
 	})
-	Controller.OperasionalController(db, r)
-	Controller.TestimoniController(db, r)
-	Controller.ArticleController(db, r)
+	Controller.OperasionalController(r)
+	Controller.TestimoniController(r)
+	Controller.NewsController(r)
 	Controller.Authorization(db, r)
 	Controller.Post(r)
 	Controller.AdditionalInfo(r)
