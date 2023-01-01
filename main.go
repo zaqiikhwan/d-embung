@@ -10,13 +10,13 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal(err.Error())
-	}
+	// if using file .env use code below
+	// if err := godotenv.Load(); err != nil {
+	// 	log.Fatal(err.Error())
+	// }
 
 	//Database
 	db := Database.Open()
