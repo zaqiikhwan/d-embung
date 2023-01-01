@@ -5,7 +5,6 @@ import (
 	"backend-d-embung/Handlers"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func OperasionalController(r *gin.Engine) {
@@ -49,7 +48,7 @@ func TestimoniController(r *gin.Engine) {
 	r.GET("/testimoni", Handlers.GetAllTestimoni)
 }
 
-func Authorization(db *gorm.DB, r *gin.Engine) {
+func Authorization(r *gin.Engine) {
 	r.POST("/register", Handlers.RegisterAdmin)
 
 	r.POST("/login", Handlers.LoginAdmin)

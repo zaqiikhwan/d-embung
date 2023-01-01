@@ -703,7 +703,9 @@ func GetPictureByID(c *gin.Context) {
 
 	var getPicture Entities.Photo
 
-	if err := Database.Open().Where("id = ?", id).Take(&getPicture); err.Error != nil {
+	err := Database.Open().Where("id = ?", id).Take(&getPicture)
+
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "error when querying the database.",
@@ -711,6 +713,15 @@ func GetPictureByID(c *gin.Context) {
 			"error":   err.Error.Error(),
 		})
 		return
+	}
+
+	if err.RowsAffected < 1 {
+		c.JSON(http.StatusNotFound, gin.H {
+			"success": false,
+			"message": "picture not found",
+			"statusCode": http.StatusNotFound,
+			"error": nil,
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{

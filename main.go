@@ -10,13 +10,13 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	_"github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// if err := godotenv.Load(); err != nil {
-	// 	log.Fatal(err.Error())
-	// }
+	if err := godotenv.Load(); err != nil {
+		log.Fatal(err.Error())
+	}
 
 	//Database
 	db := Database.Open()
@@ -60,7 +60,7 @@ func main() {
 	Controller.OperasionalController(r)
 	Controller.TestimoniController(r)
 	Controller.NewsController(r)
-	Controller.Authorization(db, r)
+	Controller.Authorization(r)
 	Controller.Post(r)
 	Controller.AdditionalInfo(r)
 	if err := r.Run(); err != nil {
